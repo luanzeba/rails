@@ -84,7 +84,10 @@ module ActiveRecord
           # If there's nothing in the database and @target has no new records
           # we are certain the current target is an empty array. This is a
           # documented side-effect of the method that may avoid an extra SELECT.
-          loaded! if count == 0
+          if count == 0 && target.select(&:new_record?).empty?
+            self.target = []
+            loaded!
+          end
 
           [association_scope.limit_value, count].compact.min
         end
