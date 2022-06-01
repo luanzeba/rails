@@ -322,6 +322,17 @@ class AssociationProxyTest < ActiveRecord::TestCase
 
     assert_not_empty member.favorite_memberships.to_a
   end
+
+  def test_size_differentiates_between_new_and_persisted_in_memory_records_when_loaded_records_are_empty_luan
+    member = members(:blarpy_winkup)
+    assert_empty member.favorite_memberships
+
+    membership = member.favorite_memberships.create!
+    membership.update!(favorite: false)
+
+    assert_equal 0, member.favorite_memberships.size
+    assert_empty member.favorite_memberships
+  end
 end
 
 class OverridingAssociationsTest < ActiveRecord::TestCase
