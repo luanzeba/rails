@@ -196,4 +196,37 @@ class GeneratedAttributeTest < Rails::Generators::TestCase
     att = Rails::Generators::GeneratedAttribute.parse("supplier:references:index")
     assert_not_predicate att, :required?
   end
+
+  def test_parse_column_modifier_options_luan
+    att = Rails::Generators::GeneratedAttribute.parse("title:string{default:'New Title',null:false}")
+
+    assert_equal "title", att.name
+    assert_equal :string, att.type
+    assert_equal({ default: "'New Title'", null: "false" }, att.attr_options)
+  end
+
+  def test_parse_column_modifier_options_with_index
+    att = Rails::Generators::GeneratedAttribute.parse("title:string{default:'New Title'}:index")
+
+    assert_equal "title", att.name
+    assert_equal :string, att.type
+    assert_equal({ default: "'New Title'" }, att.attr_options)
+    assert_predicate att, :has_index?
+  end
+
+  def test_validates_column_modifiers_luan
+    e = assert_raise Rails::Generators::Error do
+      Rails::Generators::GeneratedAttribute.parse("test:decimal{bogus:2}")
+    end
+    message = "Could not generate field 'test' with unknown column modifier 'bogus'."
+    assert_match message, e.message
+  end
+
+  def test_parse_column_modifier_options_and_types_luan
+    att = Rails::Generators::GeneratedAttribute.parse("cents:decimal{precision:2,scale:3,default:0.00}")
+
+    assert_equal "cents", att.name
+    assert_equal :decimal, att.type
+    assert_equal({ precision: "2", scale: "3", default: "0.00" }, att.attr_options)
+  end
 end
