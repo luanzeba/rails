@@ -26,6 +26,15 @@ module Rails
         timestamp
         token
       )
+      COLUMN_MODIFIERS = %w(
+        comment
+        collation
+        default
+        limit
+        null
+        precision
+        scale
+      )
 
       attr_accessor :name, :type
       attr_reader   :attr_options
@@ -33,14 +42,31 @@ module Rails
 
       class << self
         def parse(column_definition)
-          name, type, index_type = column_definition.split(":")
+          type_with_options = column_definition.match(/(.*):(.*){(.+)}(:(.*))*/)
+          if type_with_options.present? && type_with_options[3].include?(":")
+            name = type_with_options[1]
+            type = type_with_options[2]
+            options = type_with_options[3]
+            index_type = type_with_options[5]
 
-          # if user provided "name:index" instead of "name:string:index"
-          # type should be set blank so GeneratedAttribute's constructor
-          # could set it to :string
-          index_type, type = type, nil if valid_index_type?(type)
+            attr_options = options.split(",").each_with_object({}) do |option, hash|
+              key, value = option.split(":")
+              if key && !COLUMN_MODIFIERS.include?(key.to_s)
+                raise Error, "Could not generate field '#{name}' with unknown column modifier '#{key}'."
+              end
+              hash[key.to_sym] = value
+            end
+            p "attr_options: #{attr_options}"
+          else
+            name, type, index_type = column_definition.split(":")
 
-          type, attr_options = *parse_type_and_options(type)
+            # if user provided "name:index" instead of "name:string:index"
+            # type should be set blank so GeneratedAttribute's constructor
+            # could set it to :string
+            index_type, type = type, nil if valid_index_type?(type)
+
+            type, attr_options = *parse_type_and_options(type)
+          end
           type = type.to_sym if type
 
           if type && !valid_type?(type)
